@@ -77,11 +77,21 @@ class LabelDataset(object):
                 if tool == 'circle':
                     label_id = int(line[4])
                     label_name = self.labelmap[ [x['object_id'] for x in self.labelmap].index(label_id) ]['object_name']
-                    self.add(LabelCircle(int(line[4]), float(line[1]), float(line[2]), float(line[3]), label_name=label_name))
+                    if len(line) > 5:
+                        print "Adding circle label with occlusion field: %i" % int(line[5])
+                        self.add(LabelCircle(int(line[4]), float(line[1]), float(line[2]), float(line[3]), int(line[5]), label_name=label_name))
+                    else:
+                        print "Adding circle label with occlusion field: %i" % int(False)
+                        self.add(LabelCircle(int(line[4]), float(line[1]), float(line[2]), float(line[3]), int(False), label_name=label_name))
                 elif tool == 'rectangle':
                     label_id = int(line[5])
                     label_name = self.labelmap[ [x['object_id'] for x in self.labelmap].index(label_id) ]['object_name']
-                    self.add(LabelRectangle(int(line[5]), float(line[1]), float(line[2]), float(line[3]), float(line[4]), label_name=label_name))
+                    if len(line) > 5:
+                        print "Adding rectangle label with occlusion field: %i" % int(line[5])
+                        self.add(LabelRectangle(int(line[5]), float(line[1]), float(line[2]), float(line[3]), float(line[4]), int(line[6]), label_name=label_name))
+                    else:
+                        print "Adding rectangle label with occlusion field: %i" % int(False)
+                        self.add(LabelRectangle(int(line[5]), float(line[1]), float(line[2]), float(line[3]), float(line[4]), int(False), label_name=label_name))
             except ValueError:
                 # Things that don't convert will be skipped
                 if line[0][0] != '#': # ignore comments
@@ -134,6 +144,7 @@ class Tool_Circle(Tool):
         self.radius = 20
         self.label = 1
         self.radius_scroll_delta = 2
+        self.occluded = False
     def click(self, parent, button, release=False):
         modifiers = QtGui.QApplication.keyboardModifiers()
         point = (self.position.x(), self.position.y())
@@ -144,7 +155,7 @@ class Tool_Circle(Tool):
             if datum:
                 parent.highlight(datum[0])
         elif modifiers == QtCore.Qt.NoModifier and button == QtCore.Qt.LeftButton:
-            parent.add_datum(LabelCircle(self.label, point[0], point[1], self.radius,
+            parent.add_datum(LabelCircle(self.label, point[0], point[1], self.radius, int(self.occluded),
                 label_name=self.labelmap[ [x['object_id'] for x in self.labelmap].index(self.label) ]['object_name']))
     def wheel(self, parent, QWheelEvent):
         delta = QWheelEvent.delta()
@@ -167,6 +178,8 @@ class Tool_Circle(Tool):
             parent.update()
             parent.imagePanel.update()
             parent.ui.treeWidget.update()
+        elif key == QtCore.Qt.Key_Alt:
+            self.occluded = not self.occluded
         else:
             keystr = str(QtCore.QString(QtCore.QChar(key))).lower()
             shortcuts = [x['keyboard_shortcut'] for x in self.labelmap]
@@ -191,6 +204,7 @@ class Tool_Rectangle(Tool):
         self.size_scroll_delta = 0.1 # percent
         self.size_scroll_delta_precise = 2 # pixels
         self.resize_dim = Tool_Rectangle.RESIZE_X | Tool_Rectangle.RESIZE_Y
+        self.occluded = False
     def click(self, parent, button, release=False):
         if release:
             return
@@ -203,7 +217,7 @@ class Tool_Rectangle(Tool):
         elif modifiers == QtCore.Qt.NoModifier and button == QtCore.Qt.LeftButton:
             if self.mode == Tool_Rectangle.MODE_CENTRE:
                 point = (self.position.x() - self.dx // 2, self.position.y() - self.dy // 2)
-            parent.add_datum(LabelRectangle(self.label, point[0], point[1], self.dx, self.dy, 
+            parent.add_datum(LabelRectangle(self.label, point[0], point[1], self.dx, self.dy, int(self.occluded),
                 label_name=self.labelmap[ [x['object_id'] for x in self.labelmap].index(self.label) ]['object_name']))
     def wheel(self, parent, QWheelEvent):
         delta = QWheelEvent.delta()
@@ -242,6 +256,8 @@ class Tool_Rectangle(Tool):
             self.resize_dim = Tool_Rectangle.RESIZE_X
         elif key == QtCore.Qt.Key_A:
             self.resize_dim = Tool_Rectangle.RESIZE_Y
+        elif key == QtCore.Qt.Key_Alt:
+            self.occluded = not self.occluded
         else:
             keystr = str(QtCore.QString(QtCore.QChar(key))).lower()
             shortcuts = [x['keyboard_shortcut'] for x in self.labelmap]
@@ -312,8 +328,9 @@ class LabelShape(object):
 
 class LabelRectangle(LabelShape):
     enum = 1
-    def __init__(self, label, x, y, dx, dy, label_name=''):
+    def __init__(self, label, x, y, dx, dy, occluded, label_name=''):
         rectangle = box(x, y, x+dx, y+dy)
+        rectangle.occluded = int(occluded)
         super(LabelRectangle, self).__init__(label, rectangle, label_name=label_name)
     def get_rect_data(self):
         x1, y1, x2, y2 = self.shape.bounds
@@ -328,10 +345,11 @@ class LabelRectangle(LabelShape):
             view.setText(2, "(%d, %d)" % (dx, dy))
             view.setText(3, str(self.label))
             view.setText(4, str(self.label_name))
+            view.setText(5, str(self.shape.occluded))
         elif isinstance(view, QtGui.QPainter):
             view.drawRect(x, y, dx, dy)
     def serialize(self):
-        return (self.id,) + self.get_rect_data() + (self.label,)
+        return (self.id,) + self.get_rect_data() + (self.label,) + (self.shape.occluded,)
     def svg_shape(self):
         '''return the SVG shape that this object represents'''
         r, g, b = my_colormap[self.label]
@@ -343,9 +361,10 @@ class LabelRectangle(LabelShape):
 
 class LabelCircle(LabelShape):
     enum = 1
-    def __init__(self, label, x, y, radius, label_name=''):
+    def __init__(self, label, x, y, radius, occluded, label_name=''):
         circle = Point(x, y).buffer(radius)
         (circle.x, circle.y, circle.radius) = (x, y, radius)
+        circle.occluded = int(occluded)
         super(LabelCircle, self).__init__(label, circle, label_name=label_name)
     def populate_view(self, view, **kwargs):
         if isinstance(view, QtGui.QTreeWidgetItem):
@@ -355,12 +374,13 @@ class LabelCircle(LabelShape):
             view.setText(2, str(self.shape.radius))
             view.setText(3, str(self.label))
             view.setText(4, str(self.label_name))
+            view.setText(5, str(self.shape.occluded))
         elif isinstance(view, QtGui.QPainter):
             (x, y) = (self.shape.x - self.shape.radius, self.shape.y - self.shape.radius)
             side_width = 2*self.shape.radius
             view.drawEllipse(x , y, side_width, side_width)
     def serialize(self):
-        return (self.id, self.shape.x, self.shape.y, self.shape.radius, self.label)
+        return (self.id, self.shape.x, self.shape.y, self.shape.radius, self.label, self.shape.occluded)
     def svg_shape(self):
         '''return the SVG shape that this object represents'''
         r, g, b = my_colormap[self.label]

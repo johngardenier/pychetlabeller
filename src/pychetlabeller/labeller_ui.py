@@ -232,6 +232,7 @@ class Ui_MainWindow(object):
         self.treeWidget.headerItem().setText(2, _translate("MainWindow", "Size", None))
         self.treeWidget.headerItem().setText(3, _translate("MainWindow", "Label ID", None))
         self.treeWidget.headerItem().setText(4, _translate("MainWindow", "Label Name", None))
+        self.treeWidget.headerItem().setText(5, _translate("MainWindow", "Occluded", None))
         self.menuFIle.setTitle(_translate("MainWindow", "FIle", None))
         self.menuHere.setTitle(_translate("MainWindow", "Help", None))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar", None))
