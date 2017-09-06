@@ -31,6 +31,7 @@ my_colormap = [\
 [13, 255, 0], 
 [255, 0, 207]] * 20 # Dirty hack to cater for more than 10 objects - will have same colours
 label_dataset = None
+myPen = QtGui.QPen(QtCore.Qt.green, 1, QtCore.Qt.SolidLine)
 
 class LabelDataset(object):
     '''shape-label dataset class'''
@@ -78,19 +79,15 @@ class LabelDataset(object):
                     label_id = int(line[4])
                     label_name = self.labelmap[ [x['object_id'] for x in self.labelmap].index(label_id) ]['object_name']
                     if len(line) > 5:
-                        print "Adding circle label with occlusion field: %i" % int(line[5])
                         self.add(LabelCircle(int(line[4]), float(line[1]), float(line[2]), float(line[3]), int(line[5]), label_name=label_name))
                     else:
-                        print "Adding circle label with occlusion field: %i" % int(False)
                         self.add(LabelCircle(int(line[4]), float(line[1]), float(line[2]), float(line[3]), int(False), label_name=label_name))
                 elif tool == 'rectangle':
                     label_id = int(line[5])
                     label_name = self.labelmap[ [x['object_id'] for x in self.labelmap].index(label_id) ]['object_name']
-                    if len(line) > 5:
-                        print "Adding rectangle label with occlusion field: %i" % int(line[5])
+                    if len(line) > 6:
                         self.add(LabelRectangle(int(line[5]), float(line[1]), float(line[2]), float(line[3]), float(line[4]), int(line[6]), label_name=label_name))
                     else:
-                        print "Adding rectangle label with occlusion field: %i" % int(False)
                         self.add(LabelRectangle(int(line[5]), float(line[1]), float(line[2]), float(line[3]), float(line[4]), int(False), label_name=label_name))
             except ValueError:
                 # Things that don't convert will be skipped
@@ -108,6 +105,35 @@ class LabelDataset(object):
         point = Point(position[0], position[1])
         results = [datum for datum in self.data if point.within(datum.shape)]
         return results
+    def getParentObjectId(self, childObjectId ):
+        parentObjectId = self.labelmap[ [x['object_id'] for x in self.labelmap].index(childObjectId) ].get('parent_object_id', None)
+        if isinstance( parentObjectId, int ):
+            return [parentObjectId]
+        elif isinstance( parentObjectId, list):
+            return parentObjectId
+        else:
+            return []
+    def getChildObjectId(self, parentObjectId ):
+        childObjectId = []
+        for i,label in enumerate(self.labelmap):
+            parentObjectId_ = self.getParentObjectId(label.get('object_id'))
+            if  parentObjectId in parentObjectId_:
+                childObjectId.append(label.get('object_id'))
+        return childObjectId  
+    def getLabelId(self, parentObjectId ):
+        childObjectId = []
+        for i,label in enumerate(self.labelmap):
+            parentObjectId_ = getParentObjectId(label.get('object_id'))
+            if  parentObjectId in parentObjectId_:
+                childObjectId.append(label.get('object_id'))
+        return childObjectId
+    def findLabelByObjectId(self, objectId):
+        '''find a LabelShape given by ObjectID'''
+        results = [datum for datum in self.data if datum.label == objectId ]
+        return results
+        # if len(results):
+        #     return results[0]
+        # return None   
 
 # class Command(object):
 #     '''Superclass for editor commands'''
@@ -142,7 +168,7 @@ class Tool_Circle(Tool):
     def __init__(self):
         super(Tool_Circle, self).__init__()
         self.radius = 20
-        self.label = 1
+        self.label = 0
         self.radius_scroll_delta = 2
         self.occluded = False
     def click(self, parent, button, release=False):
@@ -163,6 +189,20 @@ class Tool_Circle(Tool):
         parent.update()
         super(Tool_Circle, self).wheel(parent, QWheelEvent)
     def paint(self, parent, QPainter, QStyleOptionGraphicsItem, QWidget):
+        for parentObjectId in label_dataset.getParentObjectId(self.label):
+            QPainter.save() #save current pen etc
+            QPainter.setPen(myPen);
+            for label in label_dataset.findLabelByObjectId(parentObjectId):
+                coords = label.getxy()
+                QPainter.drawLine(coords[0], coords[1], self.position.x(), self.position.y())
+            QPainter.restore()
+        for childObjectId in label_dataset.getChildObjectId(self.label):
+            QPainter.save() #save current pen etc         
+            QPainter.setPen(myPen);
+            for label in label_dataset.findLabelByObjectId(childObjectId):
+                coords = label.getxy()
+                QPainter.drawLine(coords[0], coords[1], self.position.x(), self.position.y())
+            QPainter.restore()
         QPainter.drawEllipse(
             self.position.x() - self.radius
             , self.position.y() - self.radius
@@ -178,7 +218,7 @@ class Tool_Circle(Tool):
             parent.update()
             parent.imagePanel.update()
             parent.ui.treeWidget.update()
-        elif key == QtCore.Qt.Key_Alt:
+        elif key == QtCore.Qt.Key_Space:
             self.occluded = not self.occluded
         else:
             keystr = str(QtCore.QString(QtCore.QChar(key))).lower()
@@ -256,7 +296,7 @@ class Tool_Rectangle(Tool):
             self.resize_dim = Tool_Rectangle.RESIZE_X
         elif key == QtCore.Qt.Key_A:
             self.resize_dim = Tool_Rectangle.RESIZE_Y
-        elif key == QtCore.Qt.Key_Alt:
+        elif key == QtCore.Qt.Key_Space:
             self.occluded = not self.occluded
         else:
             keystr = str(QtCore.QString(QtCore.QChar(key))).lower()
@@ -317,6 +357,8 @@ class LabelShape(object):
         pass
     def __hash__(self):
         return self.id
+    def getxy(self):
+        pass
     def __cmp__(self, other):
         if self.id > other.id:
             return 1
@@ -336,6 +378,8 @@ class LabelRectangle(LabelShape):
         x1, y1, x2, y2 = self.shape.bounds
         x, y, dx, dy = x1, y1, x2-x1, y2-y1
         return x,y,dx,dy
+    def getxy(self):
+        return get_rect_data[0:2]
     def populate_view(self, view, **kwargs):
         x, y, dx, dy = self.get_rect_data()
         if isinstance(view, QtGui.QTreeWidgetItem):
@@ -376,9 +420,25 @@ class LabelCircle(LabelShape):
             view.setText(4, str(self.label_name))
             view.setText(5, str(self.shape.occluded))
         elif isinstance(view, QtGui.QPainter):
+            for parentObjectId in label_dataset.getParentObjectId(self.label):
+                view.save() #save current pen etc
+                view.setPen(myPen);
+                for label in label_dataset.findLabelByObjectId(parentObjectId):
+                    coords = label.getxy()
+                    view.drawLine(coords[0], coords[1], self.getxy()[0], self.getxy()[1])
+                view.restore()
+            for childObjectId in label_dataset.getChildObjectId(self.label):
+                view.save() #save current pen etc
+                view.setPen(myPen)
+                for label in label_dataset.findLabelByObjectId(childObjectId):
+                    coords = label.getxy()
+                    view.drawLine(coords[0], coords[1], self.getxy()[0], self.getxy()[1])
+                view.restore()
             (x, y) = (self.shape.x - self.shape.radius, self.shape.y - self.shape.radius)
             side_width = 2*self.shape.radius
-            view.drawEllipse(x , y, side_width, side_width)
+            view.drawEllipse(x , y, side_width, side_width)       
+    def getxy(self):
+        return [self.shape.x, self.shape.y]
     def serialize(self):
         return (self.id, self.shape.x, self.shape.y, self.shape.radius, self.label, self.shape.occluded)
     def svg_shape(self):
@@ -919,6 +979,7 @@ def parse_args():
     return args
 
 def parse_labelmap(labelmapfile=None):
+    
     if labelmapfile is not None and os.path.exists(labelmapfile):
         import simplejson as json
         with open(labelmapfile, 'rb') as f:
