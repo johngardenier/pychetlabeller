@@ -32,6 +32,7 @@ my_colormap = [\
 [255, 0, 207]] * 20 # Dirty hack to cater for more than 10 objects - will have same colours
 label_dataset = None
 myPen = QtGui.QPen(QtCore.Qt.green, 1, QtCore.Qt.SolidLine)
+myPen_occluded = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
 
 class LabelDataset(object):
     '''shape-label dataset class'''
@@ -203,10 +204,15 @@ class Tool_Circle(Tool):
                 coords = label.getxy()
                 QPainter.drawLine(coords[0], coords[1], self.position.x(), self.position.y())
             QPainter.restore()
+	if self.occluded:
+	    QPainter.save() #save current pen etc         
+	    QPainter.setPen(myPen_occluded)
         QPainter.drawEllipse(
             self.position.x() - self.radius
             , self.position.y() - self.radius
             , 2 * self.radius, 2 * self.radius)
+	if self.occluded:
+	    QPainter.restore()
     def enable(self, parent):
         # parent.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         parent.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
@@ -275,10 +281,15 @@ class Tool_Rectangle(Tool):
         parent.update()
         super(Tool_Rectangle, self).wheel(parent, QWheelEvent)
     def paint(self, parent, QPainter, QStyleOptionGraphicsItem, QWidget):
+	if self.occluded:
+	    QPainter.save() #save current pen etc         
+	    QPainter.setPen(myPen_occluded)
         if self.mode == Tool_Rectangle.MODE_EDGE:
             QPainter.drawRect(self.position.x(), self.position.y(), self.dx, self.dy)
         elif self.mode == Tool_Rectangle.MODE_CENTRE:
             QPainter.drawRect(self.position.x() - self.dx // 2, self.position.y() - self.dy // 2, self.dx, self.dy)
+	if self.occluded:
+	    QPainter.restore()
     def enable(self, parent):
         # parent.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         parent.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
