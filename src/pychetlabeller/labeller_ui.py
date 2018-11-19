@@ -1,7 +1,8 @@
-# Form implementation generated from reading ui file 'labeller.ui'
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'src/pychetlabeller/labeller.ui'
 #
-# Created: Mon Nov  2 13:15:18 2015
-#      by: PyQt4 UI code generator 4.10.4
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -165,7 +166,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.graphicsView, 0, 0, 1, 3)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1211, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1211, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFIle = QtGui.QMenu(self.menubar)
         self.menuFIle.setObjectName(_fromUtf8("menuFIle"))
@@ -209,7 +210,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "Pychet Cricle Annotator", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Pychet Annotator", None))
         self.dockWidget.setWindowTitle(_translate("MainWindow", "Navigation", None))
         self.autosave_chk.setText(_translate("MainWindow", "AutoSave", None))
         self.label_folder_btn.setText(_translate("MainWindow", "Label Folder", None))
@@ -230,8 +231,8 @@ class Ui_MainWindow(object):
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "Item", None))
         self.treeWidget.headerItem().setText(1, _translate("MainWindow", "Location", None))
         self.treeWidget.headerItem().setText(2, _translate("MainWindow", "Size", None))
-        self.treeWidget.headerItem().setText(3, _translate("MainWindow", "Label ID", None))
-        self.treeWidget.headerItem().setText(4, _translate("MainWindow", "Label Name", None))
+        self.treeWidget.headerItem().setText(3, _translate("MainWindow", "Label", None))
+        self.treeWidget.headerItem().setText(4, _translate("MainWindow", "Label ID", None))
         self.treeWidget.headerItem().setText(5, _translate("MainWindow", "Occluded", None))
         self.menuFIle.setTitle(_translate("MainWindow", "FIle", None))
         self.menuHere.setTitle(_translate("MainWindow", "Help", None))

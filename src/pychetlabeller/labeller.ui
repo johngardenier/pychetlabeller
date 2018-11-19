@@ -251,17 +251,27 @@
          </column>
          <column>
           <property name="text">
-           <string>Centroid</string>
+           <string>Location</string>
           </property>
          </column>
          <column>
           <property name="text">
-           <string>Radius</string>
+           <string>Size</string>
           </property>
          </column>
          <column>
           <property name="text">
            <string>Label</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Label ID</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Occluded</string>
           </property>
          </column>
         </widget>
@@ -280,7 +290,7 @@
      <x>0</x>
      <y>0</y>
      <width>1211</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFIle">

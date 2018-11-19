@@ -447,7 +447,12 @@ class LabelCircle(LabelShape):
                 view.restore()
             (x, y) = (self.shape.x - self.shape.radius, self.shape.y - self.shape.radius)
             side_width = 2*self.shape.radius
-            view.drawEllipse(x , y, side_width, side_width)       
+            if self.shape.occluded:
+                view.save() #save current pen etc
+                view.setPen(myPen_occluded)
+            view.drawEllipse(x , y, side_width, side_width)    
+            if self.shape.occluded:
+                view.restore()
     def getxy(self):
         return [self.shape.x, self.shape.y]
     def serialize(self):

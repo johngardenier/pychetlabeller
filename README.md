@@ -80,6 +80,9 @@ for the labels.
 We can also edit objects/object_labeler.py to quickly label one image. Under the object
 MainWindow, uncomment self.quickview(), then under function quickview() set your image path.
 
+### Extending gui
+To change the gui, edit labeller.ui in QTCreator. Convert the labeller.ui file to labeller\_ui.py with pyuic4 src/pychetlabeller/labeller.ui > src/pychetlabeller/labeller\_ui.py (requires pyqt4-dev-tools). When building with setup.py build, the new labeller_ui.py will be copied across to the build folder.
+
 ## Future work
 Extentions to labeller - coming soon:
 * Currently can choose only one or the other - circles or rectangles - due to strict csv format. Should resort to svg only format and save all shapes
